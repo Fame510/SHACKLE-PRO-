@@ -144,6 +144,43 @@ Select action (R/S/A):
 
 ---
 
+## 💰 Commercial Licensing
+
+SHACKLE is open-source under **AGPLv3** — free for individual developers,
+hobbyists, and open-source projects. If you're using SHACKLE in a closed-source
+commercial product, SaaS platform, or enterprise deployment, the AGPLv3
+requires you to open-source your entire application. Most companies don't
+want to do that — so they purchase a commercial license instead.
+
+### What a Commercial License Gets You
+
+| | AGPLv3 (Free) | Commercial License |
+|---|---|---|
+| Use in closed-source products | ❌ | ✅ |
+| White-label / rebrand | ❌ | ✅ |
+| No copyleft obligations | ❌ | ✅ |
+| Priority support | Community | SLA-backed |
+| Custom integration assistance | Self-serve | Architecture audit |
+
+### Available Commercial Options
+
+**Startup License** — $1,200/year per developer
+For funded startups shipping proprietary agent products.
+
+**Enterprise License** — Custom pricing
+White-label integration, on-prem deployment, SSO, audit log compliance.
+Includes architecture audit + custom SHACKLE configuration for your
+specific agent topology.
+
+**Partnership / White-Label** — $10,000–$50,000 flat
+For agent framework companies (CrewAI, LangGraph, etc.) wanting to ship
+SHACKLE as a native enterprise feature. Co-branded integration + revenue
+share on enterprise upsell.
+
+📧 **Contact:** engineering@sovereignlogic.io
+
+---
+
 ## ⚠️ Disclaimer of Liability
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -161,15 +198,13 @@ MONITORING YOUR OWN API LIMITS AND USAGE BILLS.
 
 ## 📄 License
 
-AGPLv3. Copyright (C) 2026 Dante Bullock, Sovereign Logic.
+Copyright (C) 2026 Dante Bullock, Sovereign Logic.
 
-This is free software: you can redistribute it and/or modify it under the
-terms of the GNU Affero General Public License as published by the Free
-Software Foundation, either version 3 of the License, or (at your option)
-any later version.
+Licensed under the GNU Affero General Public License v3.0 (AGPLv3).
+See [LICENSE](LICENSE) for full terms.
 
-For commercial licensing (closed-source use, white-label integration,
-enterprise deployment), contact: engineering@sovereignlogic.io
+**Using SHACKLE in a closed-source product?**
+[Contact us](mailto:engineering@sovereignlogic.io) for commercial licensing.
 
 ---
 
