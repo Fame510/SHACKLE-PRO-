@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "AGPL-3.0" }
 authors = [
-    { name = "Dante Bullock", email = "engineering@sovereignlogic.io" }
+    { name = "Dante Bullock", email = "docspoc101@gmail.com" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -34,7 +34,7 @@ dev = [
 Homepage = "https://github.com/Fame510/SHACKLE-PRO-"
 Repository = "https://github.com/Fame510/SHACKLE-PRO-"
 "Bug Reports" = "https://github.com/Fame510/SHACKLE-PRO-/issues"
-"Commercial Licensing" = "mailto:engineering@sovereignlogic.io"
+"Commercial Licensing" = "mailto:docspoc101@gmail.com"
 
 [tool.setuptools.packages.find]
 where = ["."]

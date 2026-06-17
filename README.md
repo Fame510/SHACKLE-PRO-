@@ -177,7 +177,7 @@ For agent framework companies (CrewAI, LangGraph, etc.) wanting to ship
 SHACKLE as a native enterprise feature. Co-branded integration + revenue
 share on enterprise upsell.
 
-📧 **Contact:** engineering@sovereignlogic.io
+📧 **Contact:** docspoc101@gmail.com
 
 ---
 
@@ -204,7 +204,7 @@ Licensed under the GNU Affero General Public License v3.0 (AGPLv3).
 See [LICENSE](LICENSE) for full terms.
 
 **Using SHACKLE in a closed-source product?**
-[Contact us](mailto:engineering@sovereignlogic.io) for commercial licensing.
+[Contact us](mailto:docspoc101@gmail.com) for commercial licensing.
 
 ---
 
@@ -219,7 +219,7 @@ breaker in sight.
 > and build the tourniquet."*
 
 GitHub: [@Fame510](https://github.com/Fame510)
-Contact: engineering@sovereignlogic.io
+Contact: docspoc101@gmail.com
 
 ---
 
