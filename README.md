@@ -18,7 +18,14 @@ consultant who'll Google "what is CrewAI" on your dime:
 
 📧 **docspoc101@gmail.com**
 
-**Flat-rate implementation: $2,500**
+### 💳 Ready to Start? Pay Here
+
+**[→ Pay $2,500 — SHACKLE Implementation + Architecture Audit ←](https://buy.stripe.com/YOUR_LINK_HERE)**
+
+*After payment, email docspoc101@gmail.com with your repo link. I'll respond
+within 4 hours to schedule your architecture audit.*
+
+**What you get:**
 - Architecture audit of your agent topology
 - Custom SHACKLE configuration for your specific models and tools
 - Integration with your existing codebase (one decorator, zero refactors)
