@@ -54,6 +54,21 @@ lean, and zero-bloat.
 
 ---
 
+## 🎯 When to Use SHACKLE
+
+**SHACKLE is purpose-built for:**
+- **Local development and debugging** — Interactive HITL console gives you real-time control
+- **CLI agents and supervised workflows** — Resume/Skip/Abort when loops are detected
+- **Cross-framework coverage** — One decorator works across CrewAI, LangGraph, and AutoGen
+- **Budget enforcement** — Client-side token tracking prevents runaway costs
+- **Iterative testing** — Catch loops early in the development cycle
+
+**For headless production APIs** (serverless functions, FastAPI endpoints, background workers where blocking for human input isn't an option), consider framework-native solutions like [TokenCircuit](https://github.com/) for automated LangGraph overrides.
+
+SHACKLE and production-oriented tools solve complementary problems: use SHACKLE during development and testing, then transition to automated overrides for deployed APIs if needed.
+
+---
+
 ## ⚡ The Problem
 
 AI agents are highly capable, but their error-handling is fundamentally broken. When an agent hits an unhandled tool error (401 Unauthorized, changed API payload, dead endpoint), it rarely self-corrects. Instead, it enters a **"Loop of Death"** — retrying the exact same tool with the exact same input, burning your context window and running up massive API bills in minutes.
