@@ -31,8 +31,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sovereign-logic/shackle"
-Repository = "https://github.com/sovereign-logic/shackle"
+Homepage = "https://github.com/Fame510/SHACKLE-PRO-"
+Repository = "https://github.com/Fame510/SHACKLE-PRO-"
+"Bug Reports" = "https://github.com/Fame510/SHACKLE-PRO-/issues"
+"Commercial Licensing" = "mailto:engineering@sovereignlogic.io"
 
 [tool.setuptools.packages.find]
 where = ["."]

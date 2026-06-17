@@ -9,6 +9,11 @@ setup(
     author="Dante Bullock",
     author_email="engineering@sovereignlogic.io",
     license="AGPL-3.0",
+    url="https://github.com/Fame510/SHACKLE-PRO-",
+    project_urls={
+        "Bug Reports": "https://github.com/Fame510/SHACKLE-PRO-/issues",
+        "Commercial Licensing": "mailto:engineering@sovereignlogic.io",
+    },
     packages=find_packages(),
     python_requires=">=3.10",
     install_requires=[
@@ -21,9 +26,11 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: GNU Affero General Public License v3 (AGPLv3)",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
 )
