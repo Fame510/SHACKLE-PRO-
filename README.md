@@ -173,16 +173,31 @@ Select action (R/S/A):
 
 ---
 
+## 🚀 V2: Enterprise Runtime Sovereignty Layer (Optional)
+
+For production deployments requiring **distributed state**, **compliance audit logs**, or **remote agent control**, see **[v2/README.md](v2/README.md)**.
+
+**V2 adds:**
+- ✅ Distributed budget tracking (across serverless functions, Lambda, K8s)
+- ✅ Postgres audit logs (cryptographically signed, SOC2-ready)
+- ✅ Remote HITL control (manage headless agents from mobile/web)
+- ✅ Commercial licensing (for closed-source products)
+
+**V1 (this)** is always free and perfect for local development. **V2** is an optional upgrade for enterprise production use.
+
+---
+
 ## 🔮 Roadmap
 
 - [x] Budget enforcement (client-side pricing table)
 - [x] Loop of Death detection (repeat tool calls + error amplification)
 - [x] HITL terminal interface (Resume / Skip / Abort)
 - [x] Execution timeout guard
+- [x] **V2: Distributed state engine** (Redis + Postgres)
+- [x] **V2: SOC2 compliance pack** (cryptographic audit logs)
 - [ ] `.shackle.yaml` config file support
 - [ ] Webhook mode for async HITL (instead of CLI)
 - [ ] Multi-agent cost attribution dashboard (Pro)
-- [ ] `.shackle.json` audit log export (Pro)
 - [ ] Slack / PagerDuty alerts (Pro)
 
 ---

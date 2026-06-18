@@ -1,0 +1,104 @@
+# Prometheus Alert Rules for SHACKLE-V2
+
+groups:
+  - name: shackle_alerts
+    interval: 1m
+    rules:
+      # License expiring soon
+      - alert: LicenseExpiringSoon
+        expr: shackle_license_days_remaining < 30
+        for: 5m
+        labels:
+          severity: warning
+          component: licensing
+        annotations:
+          summary: "SHACKLE license expiring soon"
+          description: "License {{ $labels.license_key }} expires in {{ $value }} days"
+
+      # License expired
+      - alert: LicenseExpired
+        expr: shackle_license_days_remaining <= 0
+        for: 1m
+        labels:
+          severity: critical
+          component: licensing
+        annotations:
+          summary: "SHACKLE license expired"
+          description: "License {{ $labels.license_key }} has expired"
+
+      # High validation failure rate
+      - alert: HighValidationFailureRate
+        expr: rate(shackle_license_validation_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: validation
+        annotations:
+          summary: "High license validation failure rate"
+          description: "Validation failure rate: {{ $value | humanize }} failures/sec"
+
+      # Signature verification failed
+      - alert: SignatureVerificationFailed
+        expr: shackle_audit_signature_verification_failed > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: audit
+        annotations:
+          summary: "Audit log signature verification failed"
+          description: "{{ $value }} signature verification failures detected - possible tampering"
+
+      # Database connection issues
+      - alert: DatabaseConnectionFailed
+        expr: shackle_database_connection_errors_total > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection failures"
+          description: "Unable to connect to license database"
+
+      # High request latency
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, rate(shackle_request_duration_seconds_bucket[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "High request latency (p95)"
+          description: "95th percentile latency: {{ $value | humanize }}s"
+
+      # Service down
+      - alert: ServiceDown
+        expr: up{job="shackle-license-server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: availability
+        annotations:
+          summary: "SHACKLE license server is down"
+          description: "License server has been down for more than 1 minute"
+
+      # Disk space low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/data"} / node_filesystem_size_bytes{mountpoint="/data"}) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "Low disk space on /data"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+      # Audit log export failures
+      - alert: AuditExportFailed
+        expr: shackle_audit_export_failures_total > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: audit
+        annotations:
+          summary: "Audit log export failures"
+          description: "{{ $value }} audit export operations have failed"

@@ -1,0 +1,354 @@
+// SHACKLE V2.0 Protocol Buffer Schema
+// Protocol version: 2.0.0
+
+syntax = "proto3";
+
+package shackle.v2;
+
+option go_package = "github.com/shackle/protocol/v2;shackle";
+option java_package = "com.shackle.protocol.v2";
+option java_multiple_files = true;
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+// Message types for protocol routing
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  
+  // Connection lifecycle
+  MESSAGE_TYPE_REGISTER = 1;
+  MESSAGE_TYPE_REGISTER_RESPONSE = 2;
+  MESSAGE_TYPE_HEARTBEAT = 3;
+  MESSAGE_TYPE_HEARTBEAT_RESPONSE = 4;
+  MESSAGE_TYPE_DISCONNECT = 5;
+  
+  // Execution flow
+  MESSAGE_TYPE_PRE_EXEC = 10;
+  MESSAGE_TYPE_PRE_EXEC_RESPONSE = 11;
+  MESSAGE_TYPE_POST_EXEC = 12;
+  MESSAGE_TYPE_POST_EXEC_RESPONSE = 13;
+  
+  // Human-in-the-loop
+  MESSAGE_TYPE_HITL_REQUEST = 20;
+  MESSAGE_TYPE_HITL_RESPONSE = 21;
+  MESSAGE_TYPE_HITL_ACKNOWLEDGMENT = 22;
+  
+  // Error handling
+  MESSAGE_TYPE_ERROR = 30;
+}
+
+// Verdict types for execution authorization
+enum Verdict {
+  VERDICT_UNSPECIFIED = 0;
+  VERDICT_ALLOW = 1;      // Command approved for execution
+  VERDICT_DENY = 2;       // Command rejected
+  VERDICT_HITL = 3;       // Human decision required
+  VERDICT_MODIFY = 4;     // Allowed with modifications
+}
+
+// Reason codes for verdicts
+enum ReasonCode {
+  REASON_UNSPECIFIED = 0;
+  
+  // ALLOW reasons (100-199)
+  REASON_POLICY_WHITELIST = 100;
+  REASON_SAFE_OPERATION = 101;
+  REASON_PREVIOUS_APPROVAL = 102;
+  REASON_OPERATOR_OVERRIDE = 103;
+  REASON_CACHED_VERDICT = 104;
+  
+  // DENY reasons (200-299)
+  REASON_POLICY_BLACKLIST = 200;
+  REASON_DANGEROUS_OPERATION = 201;
+  REASON_INSUFFICIENT_PRIVILEGES = 202;
+  REASON_RESOURCE_LIMIT = 203;
+  REASON_TIMEOUT = 204;
+  REASON_HITL_TIMEOUT = 205;
+  REASON_HITL_DENIED = 206;
+  REASON_MALFORMED_REQUEST = 207;
+  REASON_SESSION_INVALID = 208;
+  REASON_RATE_LIMITED = 209;
+  
+  // HITL reasons (300-399)
+  REASON_DESTRUCTIVE_OPERATION = 300;
+  REASON_CRITICAL_SYSTEM_PATH = 301;
+  REASON_UNUSUAL_PATTERN = 302;
+  REASON_POLICY_AMBIGUOUS = 303;
+  REASON_ELEVATED_PRIVILEGES = 304;
+  REASON_NETWORK_OPERATION = 305;
+  REASON_SENSITIVE_DATA_ACCESS = 306;
+  REASON_COMPLIANCE_REQUIREMENT = 307;
+}
+
+// Risk levels for HITL escalation
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_LOW = 1;
+  RISK_LEVEL_MEDIUM = 2;
+  RISK_LEVEL_HIGH = 3;
+  RISK_LEVEL_CRITICAL = 4;
+}
+
+// Health status for heartbeats
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_HEALTHY = 1;
+  HEALTH_STATUS_DEGRADED = 2;
+  HEALTH_STATUS_OVERLOADED = 3;
+  HEALTH_STATUS_SHUTTING_DOWN = 4;
+}
+
+// Error codes for protocol errors
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_PROTOCOL_VERSION_MISMATCH = 1;
+  ERROR_CODE_SESSION_EXPIRED = 2;
+  ERROR_CODE_RATE_LIMITED = 3;
+  ERROR_CODE_INTERNAL_ERROR = 4;
+  ERROR_CODE_INVALID_MESSAGE = 5;
+  ERROR_CODE_AUTHENTICATION_FAILED = 6;
+  ERROR_CODE_AUTHORIZATION_FAILED = 7;
+  ERROR_CODE_DUPLICATE_MESSAGE = 8;
+  ERROR_CODE_TIMEOUT = 9;
+}
+
+// ============================================================================
+// MESSAGE WRAPPER
+// ============================================================================
+
+// Top-level message envelope (all messages wrapped in this)
+message Message {
+  MessageType message_type = 1;
+  string message_id = 2;           // UUID v4 for correlation
+  string version = 3;              // Protocol version (e.g., "2.0.0")
+  int64 timestamp = 4;             // Unix timestamp in milliseconds
+  
+  // One of the following will be set based on message_type
+  oneof payload {
+    RegisterRequest register_request = 10;
+    RegisterResponse register_response = 11;
+    HeartbeatRequest heartbeat_request = 12;
+    HeartbeatResponse heartbeat_response = 13;
+    DisconnectRequest disconnect_request = 14;
+    
+    PreExecRequest pre_exec_request = 20;
+    PreExecResponse pre_exec_response = 21;
+    PostExecRequest post_exec_request = 22;
+    PostExecResponse post_exec_response = 23;
+    
+    HitlRequest hitl_request = 30;
+    HitlResponse hitl_response = 31;
+    HitlAcknowledgment hitl_acknowledgment = 32;
+    
+    ErrorResponse error_response = 40;
+  }
+}
+
+// ============================================================================
+// CONNECTION LIFECYCLE MESSAGES
+// ============================================================================
+
+message RegisterRequest {
+  string client_id = 1;              // Unique client identifier (UUID)
+  string client_version = 2;         // Client software version
+  string protocol_version = 3;       // Requested protocol version
+  repeated string capabilities = 4;  // Supported features
+  map<string, string> metadata = 5;  // Client metadata (hostname, user, etc.)
+}
+
+message RegisterResponse {
+  string session_id = 1;              // Assigned session UUID
+  string accepted_version = 2;        // Negotiated protocol version
+  repeated string guardian_capabilities = 3;
+  map<string, string> config = 4;     // Session config (timeouts, etc.)
+  int64 session_expires_at = 5;       // Unix timestamp
+}
+
+message HeartbeatRequest {
+  string session_id = 1;
+  HealthStatus status = 2;
+  Metrics metrics = 3;  // Optional performance metrics
+}
+
+message HeartbeatResponse {
+  bool acknowledged = 1;
+  bool should_reconnect = 2;  // True if client should restart session
+  int64 next_heartbeat_ms = 3;  // Suggested interval
+}
+
+message DisconnectRequest {
+  string session_id = 1;
+  string reason = 2;  // Human-readable disconnect reason
+  bool graceful = 3;  // True for clean shutdown
+}
+
+// ============================================================================
+// EXECUTION FLOW MESSAGES
+// ============================================================================
+
+message PreExecRequest {
+  string execution_id = 1;          // Unique execution UUID
+  repeated string command = 2;      // Command and arguments (argv)
+  string working_directory = 3;
+  map<string, string> environment = 4;  // Environment variables
+  UserContext user = 5;
+  ProcessContext process = 6;
+  bytes stdin_preview = 7;          // First 4KB of stdin (optional)
+  map<string, string> context = 8;  // Additional context
+}
+
+message PreExecResponse {
+  Verdict verdict = 1;
+  string execution_id = 2;           // Echo for correlation
+  ReasonCode reason_code = 3;
+  string reason_message = 4;
+  repeated string modified_command = 5;  // If verdict=MODIFY
+  int32 timeout_ms = 6;              // Max execution time (0=unlimited)
+  string hitl_request_id = 7;        // If verdict=HITL
+  map<string, string> metadata = 8;  // Additional verdict context
+}
+
+message PostExecRequest {
+  string execution_id = 1;
+  int32 exit_code = 2;
+  int32 signal = 3;                  // If terminated by signal
+  int64 duration_ms = 4;
+  bytes stdout_preview = 5;          // First 4KB
+  bytes stderr_preview = 6;          // First 4KB
+  int64 stdout_size = 7;             // Total bytes
+  int64 stderr_size = 8;             // Total bytes
+  ResourceUsage resource_usage = 9;
+  string error_message = 10;         // If execution failed
+}
+
+message PostExecResponse {
+  bool acknowledged = 1;
+  bool archived = 2;  // True if stored in audit log
+}
+
+// ============================================================================
+// HUMAN-IN-THE-LOOP MESSAGES
+// ============================================================================
+
+message HitlRequest {
+  string hitl_request_id = 1;
+  string execution_id = 2;
+  repeated string command = 3;
+  RiskLevel risk_level = 4;
+  repeated string risk_factors = 5;  // Reasons for escalation
+  ExecutionContext context = 6;      // Full execution context
+  Verdict suggested_verdict = 7;     // AI/policy suggestion
+  int32 timeout_ms = 8;              // Time until auto-deny
+  int64 expires_at = 9;              // Unix timestamp
+}
+
+message HitlResponse {
+  string hitl_request_id = 1;
+  Verdict verdict = 2;               // ALLOW, DENY, or MODIFY
+  repeated string modified_command = 3;  // If verdict=MODIFY
+  string reason = 4;                 // Human justification
+  string operator_id = 5;            // Who made the decision
+  int32 expires_after_executions = 6;  // Cache for N executions
+  bool permanent_rule = 7;           // Convert to permanent policy
+}
+
+message HitlAcknowledgment {
+  string hitl_request_id = 1;
+  bool applied = 2;
+  string execution_id = 3;
+}
+
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+
+message ErrorResponse {
+  ErrorCode error_code = 1;
+  string error_message = 2;
+  int32 retry_after_ms = 3;  // Suggested retry delay
+  bool fatal = 4;            // If true, disconnect
+  map<string, string> details = 5;  // Additional error context
+}
+
+// ============================================================================
+// CONTEXT AND METADATA TYPES
+// ============================================================================
+
+message UserContext {
+  string username = 1;
+  int32 uid = 2;
+  int32 gid = 3;
+  repeated int32 supplementary_gids = 4;
+  repeated string roles = 5;  // RBAC roles
+  string home_directory = 6;
+  string shell = 7;
+}
+
+message ProcessContext {
+  int32 pid = 1;
+  int32 parent_pid = 2;
+  int32 process_group_id = 3;
+  int32 session_id = 4;
+  string executable_path = 5;
+  repeated string command_line = 6;  // Full command line of process
+  string terminal = 7;               // TTY device (e.g., /dev/pts/0)
+  map<string, string> metadata = 8;  // container_id, cgroup, etc.
+}
+
+message ExecutionContext {
+  string execution_id = 1;
+  repeated string command = 2;
+  string working_directory = 3;
+  map<string, string> environment = 4;
+  UserContext user = 5;
+  ProcessContext process = 6;
+  int64 timestamp = 7;
+  map<string, string> metadata = 8;
+}
+
+message ResourceUsage {
+  int64 cpu_time_us = 1;        // CPU time in microseconds
+  int64 max_rss_kb = 2;         // Max resident set size (KB)
+  int64 page_faults = 3;
+  int64 block_input_ops = 4;
+  int64 block_output_ops = 5;
+  int64 voluntary_context_switches = 6;
+  int64 involuntary_context_switches = 7;
+}
+
+message Metrics {
+  double cpu_percent = 1;
+  int64 memory_bytes = 2;
+  int32 queue_depth = 3;         // Pending requests
+  int64 requests_per_second = 4;
+  double avg_latency_ms = 5;
+}
+
+// ============================================================================
+// EXTENSIONS
+// ============================================================================
+
+// Reserved field numbers for future protocol extensions
+// Fields 90-99 are reserved for metadata maps
+// Fields 100+ are reserved for version-specific extensions
+
+// Example extension for batch operations (future)
+message BatchPreExecRequest {
+  repeated PreExecRequest requests = 1;
+  bool fail_fast = 2;  // Stop on first DENY
+}
+
+message BatchPreExecResponse {
+  repeated PreExecResponse responses = 1;
+}
+
+// Example extension for streaming execution (future)
+message StreamChunk {
+  string execution_id = 1;
+  int32 stream_id = 2;  // 1=stdout, 2=stderr
+  bytes data = 3;
+  int64 sequence = 4;
+  bool eof = 5;
+}

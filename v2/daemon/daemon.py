@@ -1,0 +1,385 @@
+#!/usr/bin/env python3
+"""
+SHACKLE Sovereign Daemon - FastAPI server with Unix socket + WebSocket support
+Handles pre_exec/post_exec protocol messages for tool execution governance
+"""
+
+import asyncio
+import json
+import logging
+import os
+import signal
+import sys
+from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Optional, Set
+
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from pydantic import BaseModel, Field
+
+from state import StateManager
+from audit import AuditLogger
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+# Protocol message models
+class PreExecRequest(BaseModel):
+    session_id: str
+    tool_name: str
+    parameters: Dict
+    estimated_cost: float = 0.0
+    context: Optional[Dict] = None
+
+
+class PreExecResponse(BaseModel):
+    decision: str  # ALLOW, DENY, HITL
+    reason: Optional[str] = None
+    hitl_token: Optional[str] = None
+
+
+class PostExecRequest(BaseModel):
+    session_id: str
+    tool_name: str
+    parameters: Dict
+    result: Optional[Dict] = None
+    error: Optional[str] = None
+    actual_cost: float = 0.0
+    execution_time_ms: float = 0.0
+
+
+class PostExecResponse(BaseModel):
+    status: str  # ACK, ERROR
+    message: Optional[str] = None
+
+
+class HITLResponse(BaseModel):
+    hitl_token: str
+    decision: str  # ALLOW, DENY
+    notes: Optional[str] = None
+
+
+# Global state
+state_manager: Optional[StateManager] = None
+audit_logger: Optional[AuditLogger] = None
+hitl_pending: Dict[str, asyncio.Future] = {}
+websocket_connections: Set[WebSocket] = set()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown lifecycle"""
+    global state_manager, audit_logger
+    
+    logger.info("Starting SHACKLE Daemon...")
+    
+    # Initialize components
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    postgres_url = os.getenv("POSTGRES_URL", "postgresql://shackle:shackle@localhost:5432/shackle")
+    
+    state_manager = StateManager(redis_url)
+    await state_manager.connect()
+    
+    audit_logger = AuditLogger(postgres_url)
+    await audit_logger.connect()
+    
+    logger.info("SHACKLE Daemon ready")
+    
+    yield
+    
+    # Cleanup
+    logger.info("Shutting down SHACKLE Daemon...")
+    if state_manager:
+        await state_manager.close()
+    if audit_logger:
+        await audit_logger.close()
+
+
+app = FastAPI(
+    title="SHACKLE Sovereign Daemon",
+    description="Governance daemon for tool execution control",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "components": {
+            "state": state_manager is not None and state_manager.is_connected(),
+            "audit": audit_logger is not None and audit_logger.is_connected()
+        }
+    }
+
+
+@app.post("/pre_exec", response_model=PreExecResponse)
+async def pre_exec(req: PreExecRequest):
+    """
+    Pre-execution check: evaluate if tool call should proceed
+    Returns: ALLOW, DENY, or HITL (human-in-the-loop)
+    """
+    logger.info(f"pre_exec: {req.session_id} | {req.tool_name}")
+    
+    try:
+        # Check budget
+        budget_ok = await state_manager.check_budget(
+            req.session_id,
+            req.estimated_cost
+        )
+        
+        if not budget_ok:
+            await audit_logger.log_decision(
+                session_id=req.session_id,
+                tool_name=req.tool_name,
+                decision="DENY",
+                reason="Budget exceeded"
+            )
+            return PreExecResponse(
+                decision="DENY",
+                reason="Budget exceeded"
+            )
+        
+        # Check repeat call patterns
+        is_repeat = await state_manager.check_repeat_call(
+            req.session_id,
+            req.tool_name,
+            req.parameters
+        )
+        
+        if is_repeat:
+            repeat_count = await state_manager.get_repeat_count(
+                req.session_id,
+                req.tool_name,
+                req.parameters
+            )
+            
+            if repeat_count > 3:
+                # Too many repeats - trigger HITL
+                hitl_token = f"hitl_{req.session_id}_{datetime.utcnow().timestamp()}"
+                
+                await audit_logger.log_decision(
+                    session_id=req.session_id,
+                    tool_name=req.tool_name,
+                    decision="HITL",
+                    reason=f"Repeat call detected ({repeat_count} times)"
+                )
+                
+                # Create future for HITL response
+                hitl_pending[hitl_token] = asyncio.Future()
+                
+                # Notify WebSocket clients
+                await broadcast_hitl_request({
+                    "hitl_token": hitl_token,
+                    "session_id": req.session_id,
+                    "tool_name": req.tool_name,
+                    "parameters": req.parameters,
+                    "reason": f"Repeat call ({repeat_count} times)",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                
+                return PreExecResponse(
+                    decision="HITL",
+                    reason=f"Repeat call detected ({repeat_count} times)",
+                    hitl_token=hitl_token
+                )
+        
+        # Record this call for repeat detection
+        await state_manager.record_call(
+            req.session_id,
+            req.tool_name,
+            req.parameters
+        )
+        
+        await audit_logger.log_decision(
+            session_id=req.session_id,
+            tool_name=req.tool_name,
+            decision="ALLOW",
+            reason="Passed budget and repeat checks"
+        )
+        
+        return PreExecResponse(
+            decision="ALLOW",
+            reason="Passed all checks"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in pre_exec: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/post_exec", response_model=PostExecResponse)
+async def post_exec(req: PostExecRequest):
+    """
+    Post-execution logging: update counters and write audit log
+    """
+    logger.info(f"post_exec: {req.session_id} | {req.tool_name} | {req.actual_cost}")
+    
+    try:
+        # Update budget
+        await state_manager.update_budget(
+            req.session_id,
+            req.actual_cost
+        )
+        
+        # Log execution
+        await audit_logger.log_execution(
+            session_id=req.session_id,
+            tool_name=req.tool_name,
+            parameters=req.parameters,
+            result=req.result,
+            error=req.error,
+            cost=req.actual_cost,
+            execution_time_ms=req.execution_time_ms
+        )
+        
+        return PostExecResponse(
+            status="ACK",
+            message="Execution logged"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in post_exec: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/hitl_response")
+async def hitl_response(resp: HITLResponse):
+    """
+    Human-in-the-loop response endpoint
+    """
+    logger.info(f"hitl_response: {resp.hitl_token} | {resp.decision}")
+    
+    if resp.hitl_token not in hitl_pending:
+        raise HTTPException(status_code=404, detail="HITL token not found or expired")
+    
+    try:
+        # Resolve the pending future
+        future = hitl_pending.pop(resp.hitl_token)
+        future.set_result(resp)
+        
+        return {"status": "ACK", "message": "HITL response recorded"}
+        
+    except Exception as e:
+        logger.error(f"Error in hitl_response: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/hitl_wait/{hitl_token}")
+async def hitl_wait(hitl_token: str):
+    """
+    Blocking endpoint to wait for HITL response
+    Used by clients that don't have WebSocket support
+    """
+    if hitl_token not in hitl_pending:
+        raise HTTPException(status_code=404, detail="HITL token not found")
+    
+    try:
+        # Wait for human response (with timeout)
+        future = hitl_pending[hitl_token]
+        resp = await asyncio.wait_for(future, timeout=300.0)  # 5 min timeout
+        
+        return {
+            "decision": resp.decision,
+            "notes": resp.notes
+        }
+        
+    except asyncio.TimeoutError:
+        hitl_pending.pop(hitl_token, None)
+        raise HTTPException(status_code=408, detail="HITL request timed out")
+    except Exception as e:
+        logger.error(f"Error in hitl_wait: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time HITL notifications
+    """
+    await websocket.accept()
+    websocket_connections.add(websocket)
+    logger.info(f"WebSocket client connected (total: {len(websocket_connections)})")
+    
+    try:
+        while True:
+            # Keep connection alive and listen for messages
+            data = await websocket.receive_text()
+            msg = json.loads(data)
+            
+            # Handle HITL responses via WebSocket
+            if msg.get("type") == "hitl_response":
+                resp = HITLResponse(**msg["data"])
+                await hitl_response(resp)
+                
+    except WebSocketDisconnect:
+        websocket_connections.remove(websocket)
+        logger.info(f"WebSocket client disconnected (total: {len(websocket_connections)})")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}", exc_info=True)
+        websocket_connections.discard(websocket)
+
+
+async def broadcast_hitl_request(data: Dict):
+    """Broadcast HITL request to all connected WebSocket clients"""
+    message = json.dumps({
+        "type": "hitl_request",
+        "data": data
+    })
+    
+    disconnected = set()
+    for ws in websocket_connections:
+        try:
+            await ws.send_text(message)
+        except Exception as e:
+            logger.error(f"Error broadcasting to WebSocket: {e}")
+            disconnected.add(ws)
+    
+    # Clean up disconnected clients
+    websocket_connections.difference_update(disconnected)
+
+
+def run_server():
+    """Run the FastAPI server on Unix socket"""
+    socket_path = os.getenv("SHACKLE_SOCKET", "/tmp/shackle.sock")
+    
+    # Remove existing socket
+    if os.path.exists(socket_path):
+        os.remove(socket_path)
+    
+    # Run with uvicorn
+    config = uvicorn.Config(
+        app,
+        uds=socket_path,
+        log_level="info",
+        access_log=True
+    )
+    server = uvicorn.Server(config)
+    
+    # Set socket permissions
+    def set_permissions():
+        os.chmod(socket_path, 0o666)
+    
+    # Run server
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    try:
+        loop.run_until_complete(server.serve())
+    finally:
+        if os.path.exists(socket_path):
+            os.remove(socket_path)
+
+
+if __name__ == "__main__":
+    run_server()

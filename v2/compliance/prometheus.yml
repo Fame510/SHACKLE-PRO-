@@ -1,0 +1,25 @@
+# Prometheus configuration for SHACKLE-V2
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'shackle-monitor'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  - job_name: 'shackle-license-server'
+    static_configs:
+      - targets: ['license-server:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s

@@ -1,0 +1,20 @@
+# SHACKLE V2.0 Python Requirements
+# For reference implementation (client_stub.py, server_stub.py)
+
+# Core dependencies
+protobuf>=4.25.0,<5.0.0
+websockets>=12.0,<13.0
+
+# Optional: For production implementations
+# pyjwt>=2.8.0               # JWT authentication
+# cryptography>=41.0.0       # TLS support
+# prometheus-client>=0.19.0  # Metrics export
+# aiofiles>=23.0.0          # Async file I/O for logging
+# ujson>=5.9.0              # Fast JSON serialization
+
+# Development dependencies (optional)
+# pytest>=7.4.0
+# pytest-asyncio>=0.21.0
+# black>=23.12.0
+# mypy>=1.8.0
+# pylint>=3.0.0

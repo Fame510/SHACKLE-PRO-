@@ -1,0 +1,11 @@
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+redis[hiredis]>=5.0.0
+asyncpg>=0.29.0
+pydantic>=2.4.0
+httpx>=0.25.0
+PyNaCl>=1.5.0
+websockets>=12.0
+click>=8.1.0
+pytest>=7.4.0
+pytest-asyncio>=0.21.0

@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: shackle-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: shackle-postgres
+    environment:
+      POSTGRES_DB: shackle
+      POSTGRES_USER: shackle
+      POSTGRES_PASSWORD: shackle
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shackle"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shackle-daemon
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      POSTGRES_URL: postgresql://shackle:shackle@postgres:5432/shackle
+      SHACKLE_SOCKET: /tmp/shackle.sock
+    volumes:
+      - ./:/app
+      - shackle-socket:/tmp
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command: python daemon.py
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  shackle-socket:
+    driver: local
