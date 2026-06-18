@@ -1,0 +1,181 @@
+# SHACKLE Sovereign Proxy — Complete Production Stack
+# Postgres + Redis + Daemon + License Server + Prometheus + Grafana
+
+version: "3.9"
+
+services:
+  # ── SHACKLE Guardian Daemon ──
+  shackle-daemon:
+    build:
+      context: ../daemon
+      dockerfile: Dockerfile
+    container_name: shackle-daemon
+    restart: unless-stopped
+    user: "1001:1001" # shackle:shackle
+    volumes:
+      - shackle-socket:/var/run/shackle
+      - shackle-audit:/var/log/shackle
+      - ./daemon.yaml:/etc/shackle/daemon.yaml:ro
+    environment:
+      - SHACKLE_REDIS_URL=redis://redis:6379/0
+      - SHACKLE_POSTGRES_URL=postgresql://shackle:${PG_PASSWORD}@postgres:5432/shackle
+      - SHACKLE_LICENSE_KEY=${SHACKLE_LICENSE_KEY}
+      - SHACKLE_LOG_LEVEL=info
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - shackle-internal
+    healthcheck:
+      test: ["CMD", "shacklectl", "health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "2.0"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ── Redis — State Sync ──
+  redis:
+    image: redis:7-alpine
+    container_name: shackle-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+    volumes:
+      - redis-data:/data
+    networks:
+      - shackle-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ── Postgres — Audit Log ──
+  postgres:
+    image: postgres:16-alpine
+    container_name: shackle-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=shackle
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - POSTGRES_DB=shackle
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - shackle-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shackle"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ── License Server ──
+  shackle-license:
+    build:
+      context: ../compliance
+      dockerfile: Dockerfile
+    container_name: shackle-license
+    restart: unless-stopped
+    environment:
+      - SHACKLE_LICENSE_DB=/data/licenses.db
+      - SHACKLE_LICENSE_PORT=8090
+    volumes:
+      - license-data:/data
+    networks:
+      - shackle-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Prometheus — Metrics ──
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: shackle-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    volumes:
+      - ../compliance/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - shackle-internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ── Grafana — Dashboards ──
+  grafana:
+    image: grafana/grafana:latest
+    container_name: shackle-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - shackle-internal
+    depends_on:
+      - prometheus
+
+  # ── Alertmanager ──
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: shackle-alertmanager
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    volumes:
+      - ../compliance/alerts.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - shackle-internal
+
+volumes:
+  shackle-socket:
+  shackle-audit:
+  redis-data:
+  pgdata:
+  license-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  shackle-internal:
+    driver: bridge
+    internal: true

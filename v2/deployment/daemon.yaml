@@ -1,0 +1,84 @@
+# SHACKLE Daemon Configuration
+# Enterprise Sovereign Proxy
+
+daemon:
+  socket_path: /var/run/shackle/guardian.sock
+  socket_permissions: "0660"
+  socket_owner: "shackle:agents"
+  
+  # gRPC for distributed deployments
+  grpc_port: 9090
+  grpc_tls: true
+  grpc_mtls: true
+  
+  # WebSocket for remote HITL
+  wss_port: 8443
+  wss_auth_required: true
+
+state:
+  backend: redis  # sqlite | redis
+  redis_url: redis://:${REDIS_PASSWORD}@redis:6379/0
+  sqlite_path: /var/lib/shackle/state.db
+  
+  # Budget consistency model
+  budget_consistency: linearizable  # linearizable | eventual
+  
+  # Session TTL
+  session_ttl_seconds: 3600
+  stale_session_timeout_seconds: 90  # 3x heartbeat interval
+
+audit:
+  backend: postgres  # sqlite | postgres
+  postgres_url: postgresql://shackle:${PG_PASSWORD}@postgres:5432/shackle
+  
+  # Cryptographic signing
+  signing_enabled: true
+  signing_algorithm: ed25519
+  signing_key_path: /etc/shackle/audit_signing_key.pem
+  
+  # Rotation
+  rotation_interval_hours: 24
+  retention_days: 2555  # 7 years
+  compression: gzip
+
+policy:
+  # Default guard configuration for new sessions
+  default_budget_usd: 0.50
+  default_max_repeat_calls: 3
+  default_timeout_seconds: 180
+  default_window_duration_s: 3600
+  default_window_max_calls: 100
+  default_error_amplification: true
+  
+  # Adversarial hardening
+  probabilistic_deny_enabled: false
+  probabilistic_deny_jitter: 0.3
+  
+  # HITL defaults
+  hitl_mode: on_deny
+  hitl_budget_threshold: 0.25
+
+limits:
+  max_sessions_per_organization: 1000
+  max_pre_exec_per_second_per_session: 1000
+  max_message_size_bytes: 1048576  # 1MB
+  max_concurrent_sessions: 10000
+
+licensing:
+  license_key: ${SHACKLE_LICENSE_KEY}
+  license_server_url: http://shackle-license:8090
+  node_id_auto: true
+  max_nodes: 10
+
+monitoring:
+  metrics_port: 9091
+  health_check_interval_seconds: 10
+  
+  # Heartbeat
+  heartbeat_interval_seconds: 30
+  heartbeat_miss_threshold: 3
+
+multi_tenant:
+  enabled: true
+  organization_isolation: strict
+  row_level_security: true

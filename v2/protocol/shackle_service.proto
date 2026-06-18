@@ -1,0 +1,162 @@
+// SHACKLE V2 Enhanced Service Definition
+// Superset of the existing protocol — adds gRPC service, audit entries, guard config
+
+syntax = "proto3";
+
+package shackle.v2;
+
+option go_package = "github.com/shackle/protocol/v2;shackle";
+
+// ============================================================================
+// SERVICE DEFINITION (gRPC)
+// ============================================================================
+
+service ShackleGuardian {
+  // Session lifecycle
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc Disconnect(DisconnectRequest) returns (DisconnectResponse);
+
+  // Execution flow
+  rpc PreExec(PreExecRequest) returns (PreExecResponse);
+  rpc PostExec(PostExecRequest) returns (PostExecResponse);
+
+  // Human-in-the-loop
+  rpc RequestHitl(HitlRequest) returns (HitlResponse);
+
+  // State queries (admin)
+  rpc GetSessionState(SessionStateRequest) returns (SessionStateResponse);
+  rpc ListActiveSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc GetAuditLog(AuditLogRequest) returns (stream AuditLogEntry);
+}
+
+// ============================================================================
+// GUARD CONFIGURATION
+// ============================================================================
+
+message GuardConfig {
+  // Budget
+  double budget_usd = 1;
+  string budget_scope = 2;       // "session" | "agent" | "organization"
+
+  // Repeat calls
+  uint32 max_repeat_calls = 10;
+  bool error_amplification = 11;
+
+  // Timeout
+  uint32 timeout_seconds = 20;
+
+  // Time window
+  uint32 window_duration_s = 30;
+  uint32 window_max_calls = 31;
+
+  // Global limits
+  uint32 max_total_calls = 40;
+
+  // Adversarial hardening
+  bool probabilistic_deny = 50;
+  double deny_jitter_ratio = 51;
+
+  // HITL
+  string hitl_mode = 60;         // "never" | "on_deny" | "on_threshold" | "always"
+  double hitl_budget_threshold = 61;
+
+  // Hierarchy
+  string parent_guard_id = 70;
+}
+
+// ============================================================================
+// SESSION STATE
+// ============================================================================
+
+message SessionStateResponse {
+  string session_id = 1;
+  string agent_id = 2;
+  string organization_id = 3;
+  string status = 4;             // ACTIVE | PAUSED | TERMINATED | STALE
+
+  double budget_initial_usd = 10;
+  double budget_remaining_usd = 11;
+  double budget_spent_usd = 12;
+
+  uint64 total_calls = 20;
+  map<string, uint32> repeat_counts = 21;
+
+  bool circuit_tripped = 30;
+  string circuit_trip_reason = 31;
+  int64 circuit_tripped_at_ns = 32;
+
+  int64 last_activity_ns = 40;
+}
+
+message SessionStateRequest {
+  string session_id = 1;
+}
+
+message ListSessionsRequest {
+  string organization_id = 1;
+  string status_filter = 2;
+  int32 limit = 3;
+}
+
+message ListSessionsResponse {
+  repeated SessionStateResponse sessions = 1;
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+message AuditLogEntry {
+  string entry_id = 1;
+  int64 timestamp_ns = 2;
+  string session_id = 3;
+  string agent_id = 4;
+  string organization_id = 5;
+  uint64 call_number = 6;
+  string tool_name = 7;
+  bytes tool_params_hash = 8;
+  string verdict = 9;
+  string deny_reason = 10;
+  double budget_before_usd = 11;
+  double budget_after_usd = 12;
+  string operator_id = 13;
+  bytes signature = 14;
+  bytes previous_entry_hash = 15;
+}
+
+message AuditLogRequest {
+  string session_id = 1;
+  string organization_id = 2;
+  int64 start_time_ns = 3;
+  int64 end_time_ns = 4;
+  int32 limit = 5;
+}
+
+// ============================================================================
+// LICENSE VALIDATION
+// ============================================================================
+
+message LicenseValidationRequest {
+  string license_key = 1;
+  string node_id = 2;            // Unique node identifier
+  int32 node_count = 3;          // Current node count in cluster
+}
+
+message LicenseValidationResponse {
+  bool valid = 1;
+  string tier = 2;               // "community" | "pro" | "enterprise"
+  int32 max_nodes = 3;
+  int64 expires_at_ns = 4;
+  repeated string features = 5;
+  string message = 6;
+}
+
+service LicenseServer {
+  rpc ValidateLicense(LicenseValidationRequest) returns (LicenseValidationResponse);
+  rpc GetLicenseStatus(LicenseStatusRequest) returns (LicenseValidationResponse);
+}
+
+message LicenseStatusRequest {
+  string license_key = 1;
+}

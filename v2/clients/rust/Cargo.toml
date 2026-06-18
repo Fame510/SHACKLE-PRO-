@@ -1,0 +1,35 @@
+# SHACKLE Rust Core (Future)
+# ============================
+# If Python can't hit the <5ms pre_exec target, the hot path gets rewritten
+# in Rust with pyo3 bindings. This is the placeholder.
+#
+# Target files:
+#   src/lib.rs       — decide() + protocol framing
+#   src/bench.rs     — criterion benchmarks
+#
+# Build:
+#   cd v2/clients/rust && maturin develop --release
+
+[package]
+name = "shackle-core"
+version = "0.1.0"
+edition = "2021"
+description = "SHACKLE Runtime Circuit Breaker — Rust core (hot path)"
+
+[lib]
+name = "shackle_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21", features = ["extension-module"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+hex = "0.4"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "decide_bench"
+harness = false

@@ -1,0 +1,59 @@
+[Unit]
+Description=SHACKLE Sovereign Guardian Daemon
+Documentation=https://github.com/Fame510/SHACKLE-PRO-/blob/master/v2/README.md
+After=network.target redis.service postgresql.service
+Wants=redis.service postgresql.service
+
+[Service]
+Type=simple
+User=shackle
+Group=shackle
+RuntimeDirectory=shackle
+RuntimeDirectoryMode=0750
+StateDirectory=shackle
+StateDirectoryMode=0700
+LogsDirectory=shackle
+LogsDirectoryMode=0700
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/shackle /var/log/shackle
+ReadOnlyPaths=/etc/shackle
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=64
+MemoryMax=512M
+CPUQuota=200%
+TasksMax=32
+
+# Exec
+ExecStart=/usr/local/bin/shackle-daemon \
+    --config /etc/shackle/daemon.yaml \
+    --socket /var/run/shackle/guardian.sock
+
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Capabilities
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
