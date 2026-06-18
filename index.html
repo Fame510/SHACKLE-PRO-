@@ -63,6 +63,14 @@
     pointer-events: none;
   }
 
+  .hero-logo {
+    display: block;
+    width: 80px;
+    height: 80px;
+    margin-bottom: 24px;
+    filter: drop-shadow(0 0 20px rgba(255, 85, 0, 0.4));
+  }
+
   .hero-badge {
     display: inline-block;
     background: var(--orange);
@@ -228,6 +236,9 @@
     line-height: 1.5;
     color: var(--white);
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 520px;
+    min-height: 320px;
   }
 
   .term-prompt { color: var(--green); }
@@ -241,6 +252,80 @@
 
   @keyframes blink {
     50% { opacity: 0; }
+  }
+
+  /* ═══════════════════════════════════════
+     ANIMATED DEMO
+     ═══════════════════════════════════════ */
+
+  @keyframes type-cursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse-warn {
+    0%, 100% { background: rgba(255, 85, 0, 0.05); }
+    50% { background: rgba(255, 85, 0, 0.15); }
+  }
+
+  @keyframes flash-red {
+    0%, 100% { background: transparent; }
+    50% { background: rgba(255, 51, 51, 0.15); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+  }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .terminal-line {
+    display: block;
+    animation: fade-in 0.15s ease-out both;
+  }
+
+  .terminal-line.dramatic {
+    animation: fade-in 0.3s ease-out both, slide-in 0.4s ease-out both;
+  }
+
+  .terminal-line.warning {
+    animation: fade-in 0.2s ease-out both, pulse-warn 1s ease-in-out infinite;
+    padding: 2px 0;
+  }
+
+  .terminal-line.critical {
+    animation: fade-in 0.2s ease-out both, flash-red 0.5s ease-in-out 3;
+  }
+
+  .demo-badge {
+    display: inline-block;
+    background: var(--orange);
+    color: var(--blacker);
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    text-transform: uppercase;
+    animation: pulse-warn 1.5s ease-in-out infinite;
+  }
+
+  .terminal-body .saved {
+    color: var(--green);
+    font-weight: bold;
+    font-size: 14px;
+    display: block;
+    margin-top: 8px;
+    animation: fade-in 0.5s ease-out 0.2s both;
   }
 
   /* ═══════════════════════════════════════
@@ -649,6 +734,7 @@
 
 <!-- ═══════════════════════ HERO ═══════════════════════ -->
 <section class="hero">
+  <img src="logo.png" alt="SHACKLE" class="hero-logo">
   <span class="hero-badge">⚠ Production Warning</span>
 
   <h1>
@@ -682,35 +768,19 @@
     </a>
   </div>
 
-  <!-- Terminal Emulator -->
+  <!-- Animated SHACKLE Demo Terminal -->
   <div class="terminal-container">
     <div class="terminal">
       <div class="terminal-header">
         <span class="terminal-dot red"></span>
         <span class="terminal-dot yellow"></span>
         <span class="terminal-dot green"></span>
+        <span style="color:var(--gray);font-size:11px;margin-left:8px;">
+          <span class="demo-badge">◉ LIVE DEMO</span>
+        </span>
       </div>
-      <div class="terminal-body">
-        <span class="term-prompt">$ </span><span class="term-command">python agent_kickoff.py</span><br>
-        <span class="term-output">[Agent] Running research task...</span><br>
-        <span class="term-output">[Tool] web_search("latest AI news") → 200 OK</span><br>
-        <span class="term-output">[Tool] web_search("latest AI news") → 401 Unauthorized</span><br>
-        <span class="term-warn">[Tool] web_search("latest AI news") → 401 Unauthorized ⚠</span><br>
-        <br>
-        <span class="term-highlight">⛓️ SHACKLE CIRCUIT BREAKER: REPETITIVE_TOOL_CALL</span><br>
-        <br>
-        <span class="term-output">Agent: ResearchAgent</span><br>
-        <span class="term-output">Tool: web_search</span><br>
-        <span class="term-output">Input: {"query": "latest AI news", "error": "401 Unauthorized"}</span><br>
-        <span class="term-error">Call Count: 3x → CIRCUIT OPEN</span><br>
-        <br>
-        <span class="term-output">━━━ Session Stats ━━━</span><br>
-        <span class="term-output">Tokens: In: 8,400 | Out: 1,200</span><br>
-        <span class="term-output">Session Cost: $0.02850 (saved: ~$400.00)</span><br>
-        <span class="term-output">Time Running: 47.2s</span><br>
-        <br>
-        <span class="term-highlight">[R] Resume/Reset&nbsp;&nbsp;[S] Skip&nbsp;&nbsp;[A] Abort</span><br>
-        <span class="term-cursor">▌</span>
+      <div class="terminal-body" id="demo-terminal">
+        <span class="term-prompt">$ </span><span class="term-cursor">▌</span>
       </div>
     </div>
   </div>
@@ -1020,6 +1090,142 @@
     SHACKLE is a best-effort circuit breaker. You remain responsible for monitoring your own API limits and usage.
   </p>
 </footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// SHACKLE Animated Demo — Auto-playing terminal capture
+// Shows: Agent startup → tool call → error → loop detection → circuit breaker → HITL console
+// ═══════════════════════════════════════════════════════════
+
+(function() {
+  const terminal = document.getElementById('demo-terminal');
+  if (!terminal) return;
+
+  const speed = { fast: 40, normal: 80, slow: 300, dramatic: 600 };
+  let lines = [];
+
+  function line(html, delay, cls) {
+    lines.push({ html, delay: delay || speed.normal, cls: cls || '' });
+  }
+
+  // ── BUILD THE SCRIPT ──
+
+  // Phase 1: Agent startup
+  line('<span class="term-prompt">$ </span><span class="term-command">python agent_kickoff.py</span>', speed.normal);
+  line('', speed.fast);
+  line('<span class="term-output">╔══════════════════════════════════════╗</span>', speed.fast);
+  line('<span class="term-output">║  <span class="term-highlight">SHACKLE GUARD ACTIVE</span>              ║</span>', speed.fast);
+  line('<span class="term-output">║  Budget: $0.50 | Max Repeat: 3x    ║</span>', speed.fast);
+  line('<span class="term-output">║  Timeout: 180s | Framework: CrewAI ║</span>', speed.fast);
+  line('<span class="term-output">╚══════════════════════════════════════╝</span>', speed.fast);
+  line('', speed.fast);
+  line('<span class="term-output">[Agent] Initializing ResearchAgent...</span>', speed.normal);
+  line('<span class="term-output">[Agent] Task: "Find latest AI safety research"</span>', speed.normal);
+
+  // Phase 2: First tool call — success
+  line('', speed.fast);
+  line('<span class="term-output">[Tool #1] web_search("latest AI safety research 2026")</span>', speed.normal);
+  line('<span class="term-output">[Tool #1] → 200 OK | 1,200 tokens | $0.00180</span>', speed.normal);
+  line('<span class="term-output">[Guard] Budget: $0.49820 remaining ✓</span>', speed.fast);
+
+  // Phase 3: API starts failing
+  line('', speed.fast);
+  line('<span class="term-output">[Tool #2] web_search("latest AI safety research 2026")</span>', speed.normal);
+  line('<span class="term-warn">[Tool #2] → 401 Unauthorized ⚠</span>', speed.normal);
+  line('<span class="term-output">[Agent] Hmm, let me try again with same parameters...</span>', speed.slow);
+
+  // Phase 4: The loop begins — SHACKLE detects repeat
+  line('', speed.fast);
+  line('<span class="term-output">[Tool #3] web_search("latest AI safety research 2026")</span>', speed.normal);
+  line('<span class="term-warn warning">[Tool #3] → 401 Unauthorized ⚠ | Repeat #2 detected</span>', speed.normal, 'warning');
+  line('<span class="term-output">[Agent] Retrying — same query, same parameters...</span>', speed.slow);
+  line('', speed.fast);
+  line('<span class="term-output">[Tool #4] web_search("latest AI safety research 2026")</span>', speed.normal);
+  line('<span class="term-warn warning">[Tool #4] → 401 Unauthorized ⚠ | Repeat #3 detected</span>', speed.normal, 'warning');
+
+  // Phase 5: Circuit breaker TRIPS
+  line('', speed.dramatic);
+  line('<span class="term-highlight dramatic">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>', speed.fast);
+  line('<span class="term-highlight dramatic">⛓️  SHACKLE CIRCUIT BREAKER: REPETITIVE_TOOL_CALL</span>', speed.dramatic, 'dramatic');
+  line('<span class="term-highlight dramatic">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>', speed.fast);
+  line('', speed.fast);
+  line('<span class="term-output">Agent:     ResearchAgent (crewai)</span>', speed.normal);
+  line('<span class="term-output">Tool:      web_search</span>', speed.normal);
+  line('<span class="term-output">Params:    {"query": "latest AI safety research 2026"}</span>', speed.normal);
+  line('<span class="term-error critical">Error:     401 Unauthorized → IDENTICAL CALL 3x</span>', speed.normal, 'critical');
+  line('', speed.fast);
+  line('<span class="term-output">━━━ Session Stats ━━━</span>', speed.normal);
+  line('<span class="term-output">Tokens:    In: 8,400 | Out: 1,200</span>', speed.normal);
+  line('<span class="term-output">Cost:      $0.02850 spent of $0.50 budget</span>', speed.normal);
+  line('<span class="term-output">Time:      47.2s elapsed</span>', speed.normal);
+  line('', speed.fast);
+
+  // Phase 6: What SHACKLE saved
+  line('<span class="term-output">──────────────────────────────────────────</span>', speed.fast);
+  line('<span class="saved dramatic">💰 ESTIMATED SAVED: $387.42</span>', speed.dramatic, 'dramatic');
+  line('<span class="term-output" style="color:var(--gray);">   Without SHACKLE, this loop would have burned</span>', speed.normal);
+  line('<span class="term-output" style="color:var(--gray);">   ~$400 in API credits before manual intervention.</span>', speed.normal);
+  line('', speed.fast);
+  line('<span class="term-highlight">[R] Resume/Reset  [S] Skip  [A] Abort</span>', speed.normal);
+  line('<span class="term-cursor">▌</span>', speed.normal);
+  line('', speed.slow);
+  line('', speed.dramatic);
+
+  // ── ANIMATION ENGINE ──
+
+  let currentLine = 0;
+  let timeoutId = null;
+
+  function renderNext() {
+    if (currentLine >= lines.length) {
+      // Restart after pause
+      timeoutId = setTimeout(() => {
+        currentLine = 0;
+        terminal.innerHTML = '';
+        renderNext();
+      }, 3000);
+      return;
+    }
+
+    const item = lines[currentLine];
+
+    // Remove cursor from previous line
+    const cursors = terminal.querySelectorAll('.term-cursor');
+    cursors.forEach(c => c.remove());
+
+    if (item.html) {
+      const span = document.createElement('span');
+      span.className = 'terminal-line';
+      if (item.cls) span.classList.add(item.cls);
+      span.innerHTML = item.html;
+      terminal.appendChild(span);
+    } else {
+      terminal.appendChild(document.createElement('br'));
+    }
+
+    // Add cursor at end
+    const cursor = document.createElement('span');
+    cursor.className = 'term-cursor';
+    cursor.innerHTML = '▌';
+    terminal.appendChild(cursor);
+
+    // Auto-scroll
+    terminal.scrollTop = terminal.scrollHeight;
+
+    currentLine++;
+    timeoutId = setTimeout(renderNext, item.delay);
+  }
+
+  // Start after a short initial delay
+  terminal.innerHTML = '';
+  setTimeout(renderNext, 800);
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+})();
+</script>
 
 </body>
 </html>
