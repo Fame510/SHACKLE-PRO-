@@ -18,9 +18,10 @@ Welcome to SHACKLE-V2 Enterprise. This guide will walk you through deploying a c
 
 ## Step 1: Obtain Your Enterprise License
 
-Contact your SHACKLE account manager or request a license at:
-- Email: enterprise@shackle.ai
-- Portal: https://portal.shackle.ai/licenses
+Contact Dante Bullock (Sovereign Logic) directly:
+- **Email:** docspoc101@gmail.com
+- **GitHub:** https://github.com/Fame510/SHACKLE-PRO-
+- **Payment:** https://buy.stripe.com/6oU28q54DbsXdpV6Hy9sk00
 
 You will receive:
 - `SHACKLE-ENT-{UUID}-{CHECKSUM}` license key
@@ -61,24 +62,18 @@ cd /opt/shackle-v2
 
 ## Step 3: Download SHACKLE-V2
 
-### Option A: Package Installation
+### Option A: Git Clone (Recommended)
 
 ```bash
-# Download from enterprise portal
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  https://portal.shackle.ai/downloads/shackle-v2-enterprise.tar.gz \
-  -o shackle-v2.tar.gz
-
-# Extract
-tar -xzf shackle-v2.tar.gz
-cd shackle-v2
+# Clone the SHACKLE repository
+git clone https://github.com/Fame510/SHACKLE-PRO-.git
+cd SHACKLE-PRO-/v2
 ```
 
-### Option B: Git Clone (if provided repository access)
+### Option B: Direct Install via pip
 
 ```bash
-git clone https://github.com/shackle-ai/shackle-v2-enterprise.git
-cd shackle-v2-enterprise
+pip install git+https://github.com/Fame510/SHACKLE-PRO-.git
 ```
 
 ---
@@ -98,7 +93,7 @@ nano config.yaml
 # config.yaml
 license:
   key: "SHACKLE-ENT-your-license-key-here"
-  validation_server: "https://license.shackle.ai"
+  validation_server: "http://localhost:8000"  # Self-hosted validation
   
 proxy:
   host: "0.0.0.0"
@@ -344,11 +339,12 @@ scrape_configs:
 
 ### Grafana Dashboard
 
-Import the provided Grafana dashboard:
+Import the dashboard template from the repository:
 
 ```bash
-curl https://portal.shackle.ai/grafana/shackle-v2-dashboard.json > dashboard.json
-# Import via Grafana UI
+# Dashboard templates are included in the repo
+cp /opt/shackle-v2/monitoring/grafana-dashboard.json ./
+# Import via Grafana UI at http://localhost:3000
 ```
 
 ### Alert Configuration
@@ -495,19 +491,19 @@ python audit_export.py verify --input audit.jsonl
 ## Support & Resources
 
 ### Documentation
-- Full API docs: https://docs.shackle.ai/v2
-- Architecture guide: https://docs.shackle.ai/v2/architecture
-- Security whitepaper: https://shackle.ai/security
+- **GitHub Repository:** https://github.com/Fame510/SHACKLE-PRO-
+- **V2 Architecture:** See `v2/README.md` and `v2/daemon/ARCHITECTURE.md` in the repo
+- **Protocol Spec:** See `v2/protocol/PROTOCOL.md`
 
 ### Support Channels
-- Enterprise support: support@shackle.ai
-- Emergency hotline: +1-888-SHACKLE (24/7)
-- Slack workspace: shackle-enterprise.slack.com
+- **Direct Email:** docspoc101@gmail.com
+- **Response Time:** Within 48 business hours (as per service agreement)
+- **GitHub Issues:** https://github.com/Fame510/SHACKLE-PRO-/issues
 
-### Training
-- SOC2 compliance webinar: https://shackle.ai/training/soc2
-- Advanced deployment course: https://shackle.ai/training/advanced
-- Security best practices: https://shackle.ai/training/security
+### Additional Resources
+- **SOC2 Compliance Guide:** See `v2/compliance/AI-Agent-Liability-Shield.md`
+- **Deployment Guide:** See `v2/daemon/DEPLOYMENT.md`
+- **Service Agreement:** See `SERVICE-AGREEMENT.md` in the root
 
 ---
 
@@ -596,5 +592,9 @@ services:
 *Sovereign AI Infrastructure with Built-in Compliance*
 
 Version: 2.0.0  
-Last Updated: 2024  
-© SHACKLE AI Systems
+Last Updated: 2026  
+© Dante Bullock, Sovereign Logic  
+Licensed under AGPLv3 (commercial licensing available)
+
+**Contact:** docspoc101@gmail.com  
+**GitHub:** https://github.com/Fame510/SHACKLE-PRO-
