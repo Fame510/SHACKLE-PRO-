@@ -1,6 +1,6 @@
 # SHACKLE V2: Enterprise Runtime Sovereignty Layer
 
-**Status:** Production-ready optional upgrade for V1 users
+**Status:** In active development — protocol and tests are real, daemon is being built. Target: Q3 2026.
 
 ---
 
@@ -14,34 +14,34 @@ SHACKLE V1 is a **single-process decorator** that works great for local developm
 - ✅ Perfect for development, testing, CLI agents
 - ✅ Zero infrastructure required
 
-### V2 (Optional Upgrade)
-- ✅ **Distributed state** (budget shared across serverless functions, Lambda, K8s pods)
-- ✅ **Postgres audit logs** (cryptographically signed with Ed25519)
-- ✅ **Remote HITL** (control headless agents from mobile/web)
-- ✅ **SOC2 compliance pack** (for regulated industries)
-- ✅ **Commercial licensing** (for closed-source products)
+### V2 (Roadmap Q3 2026)
+- 🔧 **Distributed state** (budget shared across serverless functions, Lambda, K8s pods)
+- 🔧 **Postgres audit logs** (cryptographically signed with Ed25519)
+- 🔧 **Remote HITL** (control headless agents from mobile/web)
+- 🔧 **SOC2 compliance pack** (for regulated industries)
+- ✅ **Commercial licensing** (available now for early partners)
 
 ---
 
 ## Components
 
-### `/v2/protocol`
-- Complete wire protocol specification
-- Protobuf message schemas
+### `/v2/protocol` ✅ 
+- Complete SP/1.0 wire protocol specification
+- Protobuf message schemas (shackle.proto, shackle_service.proto)
 - Version negotiation, transport bindings
-- Reference implementation (Python)
+- Python reference stubs + TypeScript client
 
-### `/v2/daemon`
-- FastAPI server (Unix socket + WebSocket)
-- Redis state engine (distributed budgets)
-- Postgres audit logger (signed, immutable logs)
-- Thin client library (drop-in for V1 `@Guard`)
+### `/v2/daemon` 🔧 In Development
+- FastAPI server design (Unix socket + WebSocket)
+- Redis state engine specification (distributed budgets)
+- Postgres audit logger schema (signed, immutable logs)
+- Thin client library spec (drop-in for V1 `@Guard`)
 
-### `/v2/compliance`
-- Commercial license server
-- AI Agent Liability Shield (SOC2 mapping PDF)
-- Audit export API
-- Enterprise onboarding docs
+### `/v2/compliance` 🔧 In Development
+- Commercial license server design
+- SOC2 mapping documentation (framework, not certification)
+- Audit export API specification
+- Enterprise onboarding guide
 
 ---
 
@@ -61,34 +61,28 @@ SHACKLE V1 is a **single-process decorator** that works great for local developm
 
 ---
 
-## Quick Start (V2 Daemon)
+## Quick Start (V1 — Ships Today)
 
 ```bash
-# 1. Install dependencies
-cd v2/daemon
-pip install -r requirements.txt
-
-# 2. Start infrastructure (Redis + Postgres)
-docker-compose up -d
-
-# 3. Start daemon
-python daemon.py &
-
-# 4. Verify
-./verify.sh
+pip install shackle-guard
 ```
 
-### Use V2 in Your Code (Drop-in Replacement)
-
 ```python
-# V1 (still works)
 from shackle import Guard
 
-@Guard(budget=0.25)
+@Guard(budget=0.25, max_repeat_calls=3, timeout_seconds=180)
 def run():
     return crew.kickoff()
 
-# V2 (distributed state)
+run()
+```
+
+### V2 (Roadmap — join waitlist)
+
+The V2 daemon with distributed state and Ed25519 audit logging is under active development. Early design:
+
+```python
+# Planned V2 API (subject to change)
 from v2.daemon.client import ShackleClient, shackled
 
 client = ShackleClient(session_id="my-app", budget_limit=10.00)
@@ -98,7 +92,7 @@ def run():
     return crew.kickoff()
 ```
 
-**Difference:** V2 tracks budget across **all processes sharing the same `session_id`**. Perfect for serverless.
+**Difference (planned):** V2 will track budget across **all processes sharing the same `session_id`**. Perfect for serverless.
 
 ---
 
