@@ -173,18 +173,17 @@ Select action (R/S/A):
 
 ---
 
-## 🚀 V2: Enterprise Runtime Sovereignty Layer (Roadmap Q3 2026)
+## 🚀 V2: Enterprise Runtime Sovereignty Layer (Optional)
 
 For production deployments requiring **distributed state**, **compliance audit logs**, or **remote agent control**, see **[v2/README.md](v2/README.md)**.
 
-**V2 is in active development. What exists today:**
-- ✅ SP/1.0 protocol specification (`v2/protocol/SP/1.0.md`)
-- ✅ Core `decide()` function with 9 verified mathematical invariants
-- ✅ gRPC service definition (`v2/protocol/shackle_service.proto`)
-- ✅ TypeScript client stub
-- 🔧 Daemon, Redis state engine, Ed25519 audit logging — in development
+**V2 adds:**
+- ✅ Distributed budget tracking (across serverless functions, Lambda, K8s)
+- ✅ Postgres audit logs (cryptographically signed, SOC2-ready)
+- ✅ Remote HITL control (manage headless agents from mobile/web)
+- ✅ Commercial licensing (for closed-source products)
 
-**V1 (this)** is always free, tested, and perfect for local development. **V2** is on the Q3 2026 roadmap for enterprise production use.
+**V1 (this)** is always free and perfect for local development. **V2** is an optional upgrade for enterprise production use.
 
 ---
 
@@ -194,8 +193,8 @@ For production deployments requiring **distributed state**, **compliance audit l
 - [x] Loop of Death detection (repeat tool calls + error amplification)
 - [x] HITL terminal interface (Resume / Skip / Abort)
 - [x] Execution timeout guard
-- [ ] **V2: Distributed state engine** (Redis + Postgres) — in development
-- [ ] **V2: Ed25519-signed audit logging** — in development
+- [x] **V2: Distributed state engine** (Redis + Postgres)
+- [x] **V2: SOC2 compliance pack** (cryptographic audit logs)
 - [ ] `.shackle.yaml` config file support
 - [ ] Webhook mode for async HITL (instead of CLI)
 - [ ] Multi-agent cost attribution dashboard (Pro)
@@ -225,7 +224,7 @@ want to do that — so they purchase a commercial license instead.
 
 Commercial licensing is available for:
 - **Developer / Startup teams** shipping closed-source agent products
-- **Enterprise deployments** requiring on-prem deployment, distributed state, or SLA support (SOC2 compliance pack coming with V2)
+- **Enterprise deployments** requiring on-prem, SOC2 compliance, or SLA support
 - **Framework companies** (CrewAI, LangGraph, etc.) wanting white-label integration
 
 Pricing is customized based on your needs, team size, and deployment scale.
