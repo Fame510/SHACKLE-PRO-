@@ -68,7 +68,16 @@ When an agent breaches your boundaries, SHACKLE trips the circuit breaker, halts
 
 ### 1. Install
 
+> **Note:** the PyPI release is being published. Until `pip install shackle-guard`
+> is live, install directly from source (works today):
+
 ```bash
+# From source (available now)
+git clone https://github.com/Fame510/SHACKLE.git
+cd SHACKLE
+pip install -e .
+
+# Or, once published to PyPI:
 pip install shackle-guard
 ```
 
