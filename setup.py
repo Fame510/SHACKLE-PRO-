@@ -9,9 +9,9 @@ setup(
     author="Dante Bullock",
     author_email="docspoc101@gmail.com",
     license="AGPL-3.0",
-    url="https://github.com/Fame510/SHACKLE-PRO-",
+    url="https://github.com/Fame510/SHACKLE",
     project_urls={
-        "Bug Reports": "https://github.com/Fame510/SHACKLE-PRO-/issues",
+        "Bug Reports": "https://github.com/Fame510/SHACKLE/issues",
         "Commercial Licensing": "mailto:docspoc101@gmail.com",
     },
     packages=find_packages(),
